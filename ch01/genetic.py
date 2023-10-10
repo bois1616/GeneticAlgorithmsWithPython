@@ -20,47 +20,52 @@ import statistics
 import sys
 import time
 
-
-def _generate_parent(length, geneSet, get_fitness):
+class Chromosome:
+    def __init__(self, genes, fitness):
+        self.Genes = genes
+        self.Fitness = fitness
+        
+        
+def _generate_parent(length: int, geneSet: str, fnGetFitness: "function") -> Chromosome:
     genes = []
     while len(genes) < length:
+        # Since the target might be longer than geneSet, we need to 
+        # determine the largest chunk we can create with one call to
+        # random.sample. Obviously, this sample size  becomes smaller as 
+        # genes becomes larger
         sampleSize = min(length - len(genes), len(geneSet))
         genes.extend(random.sample(geneSet, sampleSize))
     genes = ''.join(genes)
-    fitness = get_fitness(genes)
+    fitness = fnGetFitness(genes)
     return Chromosome(genes, fitness)
 
 
-def _mutate(parent, geneSet, get_fitness):
+def _mutate(parent: str, geneSet: str, fnGetFitness: "function") -> Chromosome:
     index = random.randrange(0, len(parent.Genes))
     childGenes = list(parent.Genes)
     newGene, alternate = random.sample(geneSet, 2)
     childGenes[index] = alternate if newGene == childGenes[index] else newGene
     genes = ''.join(childGenes)
-    fitness = get_fitness(genes)
+    fitness = fnGetFitness(genes)
     return Chromosome(genes, fitness)
 
 
-def get_best(get_fitness, targetLen, optimalFitness, geneSet, display):
+def get_best(fnGetFitness, targetLen, optimalFitness, geneSet, fnDisplay):
     random.seed()
-    bestParent = _generate_parent(targetLen, geneSet, get_fitness)
-    display(bestParent)
+    bestParent = _generate_parent(targetLen, geneSet, fnGetFitness)
+    fnDisplay(bestParent)
+    # accidentially hit the target with first try?
     if bestParent.Fitness >= optimalFitness:
         return bestParent
+    
     while True:
-        child = _mutate(bestParent, geneSet, get_fitness)
+        child = _mutate(bestParent, geneSet, fnGetFitness)
         if bestParent.Fitness >= child.Fitness:
             continue
-        display(child)
+        fnDisplay(child)
         if child.Fitness >= optimalFitness:
             return child
         bestParent = child
-
-
-class Chromosome:
-    def __init__(self, genes, fitness):
-        self.Genes = genes
-        self.Fitness = fitness
 
 
 class Benchmark:
@@ -77,6 +82,5 @@ class Benchmark:
             timings.append(seconds)
             mean = statistics.mean(timings)
             if i < 10 or i % 10 == 9:
-                print("{} {:3.2f} {:3.2f}".format(
-                    1 + i, mean,
-                    statistics.stdev(timings, mean) if i > 1 else 0))
+                print(f"{i+1} {mean:3.2f} {statistics.stdev(timings, mean) if i > 1 else 0:3.2f}")
+ 
